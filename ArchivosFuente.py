@@ -8,6 +8,7 @@ from requests.exceptions import HTTPError
 path = os.path.dirname(os.path.realpath(__file__))
 locale.setlocale(locale.LC_TIME,"es_ES")
 date = datetime.datetime.now()
+files = []
 
 def GetSourceFiles(urls):
     for url in urls:
@@ -25,23 +26,24 @@ def GetSourceFiles(urls):
         else:
             #get category name from url and define the directory where the file will be saved
             category = (url.rsplit('/',1)[-1]).rsplit('.',1)[0].partition('_')[0]
-            directory = path+ "\\"+ category+ "\\"+ date.strftime("%Y-%B")+ "\\"
-            SaveSourceFiles(category,directory,response.content)
+            directory = (path
+                         +"\\"
+                         +category
+                         +"\\"
+                         +date.strftime("%Y-%B")
+                         +"\\")
+            files.append(SaveSourceFiles(category,
+                                         directory,
+                                         response.content))
 
 def SaveSourceFiles(category, directory, data):
     if not os.path.exists(directory):
         os.makedirs(directory)
-    with open(directory+ category+ "-"+ date.strftime("%d-%m-%Y")+ ".csv",'wb') as f:
+    with open(directory
+              +category
+              +"-"
+              +date.strftime("%d-%m-%Y")
+              +".csv",'wb') as f:
         f.write(data)
+    return f.name
 
-def main():
-    #define urls to use
-    museos_url = 'https://datos.cultura.gob.ar/dataset/37305de4-3cce-4d4b-9d9a-fec3ca61d09f/resource/4207def0-2ff7-41d5-9095-d42ae8207a5d/download/museos_datosabiertos.csv'
-    salas_de_cine_url = 'https://datos.cultura.gob.ar/dataset/37305de4-3cce-4d4b-9d9a-fec3ca61d09f/resource/392ce1a8-ef11-4776-b280-6f1c7fae16ae/download/cine.csv'
-    bibliotecas_url = 'https://datos.cultura.gob.ar/dataset/37305de4-3cce-4d4b-9d9a-fec3ca61d09f/resource/01c6c048-dbeb-44e0-8efa-6944f73715d7/download/biblioteca_popular.csv'
-
-    urls = [museos_url, salas_de_cine_url, bibliotecas_url]
-    GetSourceFiles(urls)
-
-if __name__ == "__main__":
-    main()
