@@ -8,9 +8,10 @@ from requests.exceptions import HTTPError
 path = os.path.dirname(os.path.realpath(__file__))
 locale.setlocale(locale.LC_TIME,"es_ES")
 date = datetime.datetime.now()
-files = []
+
 
 def GetSourceFiles(urls):
+    files = []
     for url in urls:
         try:
             response = req.get(url)
@@ -34,7 +35,10 @@ def GetSourceFiles(urls):
                          +"\\")
             files.append(SaveSourceFiles(category,
                                          directory,
-                                         response.content))
+                                         response.content)
+                        )
+    print("Success! Got source files")
+    return files
 
 def SaveSourceFiles(category, directory, data):
     if not os.path.exists(directory):
@@ -46,4 +50,3 @@ def SaveSourceFiles(category, directory, data):
               +".csv",'wb') as f:
         f.write(data)
     return f.name
-

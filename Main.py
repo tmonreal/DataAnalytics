@@ -1,5 +1,9 @@
+import logging
 from ArchivosFuente import *
 from ProcesamientoDeDatos import *
+
+logging.basicConfig(filename='db.log')
+logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 def main():
     #-----ARCHIVOS FUENTE-----
@@ -12,22 +16,59 @@ def main():
             cine_url, 
             bibliotecas_url
            ]
-    GetSourceFiles(urls)
-    print(files)
+    #download and save csv in folder
+    files = GetSourceFiles(urls)
 
     #-----PROCESAMIENTO DE DATOS-----
     #create engine and session
     session, engine= GetSession()
-    
+
     #read csv files, normalize column names, keep certain columns and export to PostgreSQL
-    all_csv_data= []
+    all_csv_data = []
     for file in files:
         dataframe = NormalizeColumnName(file)
-        dataframe = SelectColumns(dataframe)
-        all_csv_data.append(dataframe)
-    df_all= pd.concat(all_csv_data,axis=0)
-    ExportToSQL(df_all,name= "Normalizada", engine= engine)
-    
+        dataframe_selected = SelectColumns(dataframe, ["cod_localidad",
+                                                       "id_provincia",
+                                                       "id_departamento",
+                                                       "categoría",
+                                                       "provincia",
+                                                       "localidad",
+                                                       "nombre",
+                                                       "domicilio",
+                                                       "código postal",
+                                                       "número de telefono",
+                                                       "mail",
+                                                       "web",
+                                                       "fuente",
+                                                       "fecha de carga"])
+        all_csv_data.append(dataframe_selected) 
+        if "cine" in file:
+            df_movies = SelectColumns(dataframe, ["provincia",
+                                                  "Pantallas",
+                                                  "Butacas",
+                                                  "espacio_INCAA",
+                                                  "fecha de carga"])
+    df_all = pd.concat(all_csv_data, axis=0)
+
+    #export normalized table
+    df_normalized = df_all.drop(columns=["fuente"])
+    ExportToSQL(df_normalized, name= "Normalizada", engine= engine)
+
+    #export number of values per category
+    df_category = CountValues(df_all, "categoría", "categoría")
+    ExportToSQL(df_category, name= "Categoría", engine= engine)
+
+    #export number of values per source
+    df_source = CountValues(df_all, "fuente", "fuente")
+    ExportToSQL(df_source, name= "Fuente", engine= engine)
+
+    #export number of values per province and category
+    df_province = CountValues(df_all, "provincia", "categoría")
+    ExportToSQL(df_province, name= "Provincia y Categoría", engine= engine)
+
+    #movies table 
+    ExportToSQL(df_movies, name= "Cine", engine= engine)
+
     #close session and close all currently checked-in sessions
     session.close()
     engine= session.get_bind()
